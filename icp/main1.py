@@ -26,9 +26,15 @@ if __name__ == "__main__":
     current_transformation = np.identity(4)
     print("2. Point-to-plane ICP registration is applied on original point")
     print("   clouds to refine the alignment. Distance threshold 0.02.")
-    result_icp = o3d.registration.registration_icp(
-        source, target, 0.02, current_transformation,
-        o3d.registration.TransformationEstimationPointToPlane())
+    # result_icp = o3d.pipelines.registration.registration_icp(
+    #    source, target, 0.02, current_transformation,
+    #    o3d.pipelines.registration.TransformationEstimationPointToPlane())
+    source.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+    target.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+    result_icp = o3d.pipelines.registration.registration_icp(
+        source, target, 0.02, np.identity(4),
+        o3d.pipelines.registration.TransformationEstimationPointToPlane(),
+        o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=2000))
     print(result_icp)
     draw_registration_result_original_color(source, target,
                                             result_icp.transformation)
@@ -57,9 +63,9 @@ if __name__ == "__main__":
             o3d.geometry.KDTreeSearchParamHybrid(radius=radius * 2, max_nn=30))
 
         print("3-3. Applying colored point cloud registration")
-        result_icp = o3d.registration.registration_colored_icp(
+        result_icp = o3d.pipelines.registration.registration_colored_icp(
             source_down, target_down, radius, current_transformation,
-            o3d.registration.ICPConvergenceCriteria(relative_fitness=1e-6,
+            o3d.pipelines.registration.ICPConvergenceCriteria(relative_fitness=1e-6,
                                                     relative_rmse=1e-6,
                                                     max_iteration=iter))
         current_transformation = result_icp.transformation
