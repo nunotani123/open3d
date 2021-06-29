@@ -7,8 +7,8 @@ if __name__ == "__main__":
     source_raw = o3d.io.read_point_cloud("520-sitescape.ply")
     target_raw = o3d.io.read_point_cloud("520-sitescape.ply")
     
-    source = source_raw.voxel_down_sample(voxel_size=0.1)
-    target = target_raw.voxel_down_sample(voxel_size=0.1)
+    source = source_raw.voxel_down_sample(voxel_size=0.08)
+    target = target_raw.voxel_down_sample(voxel_size=0.08)
     
     source.paint_uniform_color([1, 0.706, 0])    #source is yellow
     target.paint_uniform_color([0, 0.651, 0.929])#target is blue

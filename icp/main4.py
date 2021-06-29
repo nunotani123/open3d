@@ -1,3 +1,4 @@
+# https://qiita.com/tttamaki/items/648422860869bbccc72d
 import open3d as o3d
 import numpy as np
 
@@ -9,8 +10,9 @@ def register(pcd1, pcd2, size):
     kdt_f = o3d.geometry.KDTreeSearchParamHybrid(radius=size * 10, max_nn=50)
 
     # ダウンサンプリング
-    pcd1_d = o3d.io.voxel_down_sample(pcd1, size)
-    pcd2_d = o3d.io.voxel_down_sample(pcd2, size)
+    pcd1_d = pcd1.voxel_down_sample(size)
+    pcd2_d = pcd2.voxel_down_sample(size)
+    
     pcd1_d.estimate_normals(kdt_n)
     pcd2_d.estimate_normals(kdt_n)
 
@@ -25,18 +27,42 @@ def register(pcd1, pcd2, size):
     est_ptp = o3d.pipelines.registration.TransformationEstimationPointToPoint()
     est_ptpln = o3d.pipelines.registration.TransformationEstimationPointToPlane()
 
-    criteria = o3d.pipelines.registration..RANSACConvergenceCriteria(max_iteration=400000,
-                                              max_validation=500)
+    criteria = o3d.pipelines.registration.RANSACConvergenceCriteria(100000, 0.999)
+    distance_threshold = size * 1.5
+
     # RANSACマッチング
-    result1 = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(pcd1_d, pcd2_d,
-                     pcd1_f, pcd2_f,
-                     max_correspondence_distance=size * 2,
-                     estimation_method=est_ptp,
-                     ransac_n=4,
-                     checkers=checker,
-                     criteria=criteria)
+    result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+        pcd1_d, pcd2_d, pcd1_f, pcd2_f, True,
+        distance_threshold,
+        o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
+        3, [
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(
+                0.9),
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(
+                distance_threshold)
+        ], o3d.pipelines.registration.RANSACConvergenceCriteria(100000, 0.999))
+    # result1 = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(pcd1_d, pcd2_d,
+    #                 pcd1_f, pcd2_f,True,
+    #                 max_correspondence_distance=size * 2,
+    #                 estimation_method=est_ptp,
+    #                 ransac_n=4,
+    #                 checkers=checker,
+    #                 criteria=criteria)
     # ICPで微修正
-    result2 = o3d.pipelines.registration.registration_icp(pcd1, pcd2, size, result1.transformation, est_ptpln)
+    # result2 = o3d.pipelines.registration.registration_icp(pcd1, pcd2, size, result.transformation, est_ptpln)
+
+    trans = [[0.862, 0.011, -0.507, 0.0], [-0.139, 0.967, -0.215, 0.7],
+             [0.487, 0.255, 0.835, -1.4], [0.0, 0.0, 0.0, 1.0]]
+    pcd1_d.transform(trans)
+
+    flip_transform = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
+    pcd1_d.transform(flip_transform)
+    pcd2_d.transform(flip_transform)
+
+    result2 = o3d.pipelines.registration.registration_icp(
+            pcd1_d, pcd2_d, size, np.identity(4),
+            o3d.pipelines.registration.TransformationEstimationPointToPlane(),
+            o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=2000))
 
     return result2.transformation
 
@@ -49,7 +75,7 @@ def merge(pcds):
         all_points.append(np.asarray(pcd.points))
 
     merged_pcd = o3d.geometry.PointCloud()
-    merged_pcd.points = o3d.geometry.Vector3dVector(np.vstack(all_points))
+    merged_pcd.points = o3d.utility.Vector3dVector(np.vstack(all_points))
 
     return merged_pcd
 
@@ -65,7 +91,7 @@ def load_pcds(pcd_files):
 
     pcds = []
     for f in pcd_files:
-        pcd = o3d.t.io.read_point_cloud(f)
+        pcd = o3d.io.read_point_cloud(f)
         add_color_normal(pcd)
         pcds.append(pcd)
 
@@ -87,7 +113,7 @@ def align_pcds(pcds, size):
             target = pcds[target_id]
 
             trans = register(source, target, size)
-            GTG_mat = GET_GTG(source, target, size, trans) # これが点の情報を含む
+            GTG_mat = o3d.pipelines.registration.get_information_matrix_from_point_clouds(source, target, size, trans) # これが点の情報を含む
 
             if target_id == source_id + 1: # 次のidの点群ならaccum_poseにposeを積算
                 accum_pose = trans @ accum_pose
@@ -101,15 +127,15 @@ def align_pcds(pcds, size):
 
 
     # 設定
-    solver = py3d.GlobalOptimizationLevenbergMarquardt()
-    criteria = py3d.GlobalOptimizationConvergenceCriteria()
-    option = py3d.GlobalOptimizationOption(
+    solver = o3d.pipelines.registration.GlobalOptimizationLevenbergMarquardt()
+    criteria = o3d.pipelines.registration.GlobalOptimizationConvergenceCriteria()
+    option = o3d.pipelines.registration.GlobalOptimizationOption(
              max_correspondence_distance=size / 10,
              edge_prune_threshold=size / 10,
              reference_node=0)
 
     # 最適化
-    py3d.global_optimization(pose_graph,
+    o3d.pipelines.registration.global_optimization(pose_graph,
                             method=solver,
                             criteria=criteria,
                             option=option)
@@ -124,17 +150,15 @@ def align_pcds(pcds, size):
 
 
 
-pcds = load_pcds(["../Basic/chin.ply",
-                  "../Basic/bun315.ply",
-                  "../Basic/bun000.ply",
-                  "../Basic/bun045.ply"])
-py3d.draw_geometries(pcds, "input pcds")
+pcds = load_pcds(["room.ply",
+                  "room1.ply"])
+o3d.visualization.draw_geometries(pcds, "input pcds")
 
 size = np.abs((pcds[0].get_max_bound() - pcds[0].get_min_bound())).max() / 30
 
 pcd_aligned = align_pcds(pcds, size)
-py3d.draw_geometries(pcd_aligned, "aligned")
+o3d.visualization.draw_geometries(pcd_aligned, "aligned")
 
 pcd_merge = merge(pcd_aligned)
 add_color_normal(pcd_merge)
-py3d.draw_geometries([pcd_merge], "merged")
+o3d.visualization.draw_geometries([pcd_merge], "merged")
