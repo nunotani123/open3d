@@ -14,8 +14,9 @@ def draw_registration_result_original_color(source, target, transformation):
 if __name__ == "__main__":
     # (1) Load two point clouds and show initial pose"
     print("1. Load two point clouds and show initial pose")
-    source = o3d.io.read_point_cloud("pack1.ply")
-    target = o3d.io.read_point_cloud("pack2.ply")
+    source = o3d.io.read_point_cloud("room.ply")
+    target = o3d.io.read_point_cloud("room1.ply")
+    target.translate(np.array([1, 0, 0]))
 
     # (1-a) draw initial alignment
     current_transformation = np.identity(4)
@@ -38,6 +39,8 @@ if __name__ == "__main__":
     print(result_icp)
     draw_registration_result_original_color(source, target,
                                             result_icp.transformation)
+
+    """
     # (3) Colored point cloud registration
     # colored pointcloud registration
     # This is implementation of following paper
@@ -72,11 +75,8 @@ if __name__ == "__main__":
         print(result_icp)
     draw_registration_result_original_color(source, target,
                                             result_icp.transformation)
-
-def draw_registration_result_original_color(source, target, transformation):
-    source_temp = copy.deepcopy(source)
-    source_temp.transform(transformation)
-    o3d.visualization.draw_geometries([source_temp, target])
+    """
+    
 
 
 
