@@ -4,9 +4,9 @@ import copy
 
 if __name__ == "__main__":
     o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
-    source_raw = o3d.io.read_point_cloud("520-sitescape.ply")
-    target_raw = o3d.io.read_point_cloud("520-sitescape.ply")
-    
+    source_raw = o3d.io.read_point_cloud("room.ply")
+    target_raw = o3d.io.read_point_cloud("room1.ply")
+     
     source = source_raw.voxel_down_sample(voxel_size=0.08)
     target = target_raw.voxel_down_sample(voxel_size=0.08)
     
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     vis.add_geometry(source)
     vis.add_geometry(target)
     threshold = 0.05
-    icp_iteration = 100
+    icp_iteration = 1000
     save_image = False
 
     for i in range(icp_iteration):
@@ -40,6 +40,4 @@ if __name__ == "__main__":
         vis.update_geometry(source)
         vis.poll_events()
         vis.update_renderer()
-        if save_image:
-            vis.capture_screen_image("temp_%04d.jpg" % i)
     vis.destroy_window()

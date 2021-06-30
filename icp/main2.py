@@ -44,7 +44,7 @@ vis.add_geometry(source)
 vis.add_geometry(target)
 
 #Let visualizer render the point cloud
-vis.update_geometry()
+vis.update_geometry(source)
 vis.poll_events()
 vis.update_renderer()
 

@@ -1,9 +1,11 @@
 # https://qiita.com/tttamaki/items/648422860869bbccc72d
 import open3d as o3d
 import numpy as np
-
+import time
 
 def register(pcd1, pcd2, size):
+
+
     # ペアの点群を位置合わせ
 
     kdt_n = o3d.geometry.KDTreeSearchParamHybrid(radius=size, max_nn=50)
@@ -51,6 +53,7 @@ def register(pcd1, pcd2, size):
     # ICPで微修正
     # result2 = o3d.pipelines.registration.registration_icp(pcd1, pcd2, size, result.transformation, est_ptpln)
 
+    """
     trans = [[0.862, 0.011, -0.507, 0.0], [-0.139, 0.967, -0.215, 0.7],
              [0.487, 0.255, 0.835, -1.4], [0.0, 0.0, 0.0, 1.0]]
     pcd1_d.transform(trans)
@@ -58,15 +61,16 @@ def register(pcd1, pcd2, size):
     flip_transform = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
     pcd1_d.transform(flip_transform)
     pcd2_d.transform(flip_transform)
-
+    """
+    
     result2 = o3d.pipelines.registration.registration_icp(
             pcd1_d, pcd2_d, size, np.identity(4),
             o3d.pipelines.registration.TransformationEstimationPointToPlane(),
-            o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=2000))
-
+            o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=200))
+    
     return result2.transformation
 
-
+"""
 def merge(pcds):
     # 複数の点群を1つの点群にマージする
 
@@ -78,6 +82,7 @@ def merge(pcds):
     merged_pcd.points = o3d.utility.Vector3dVector(np.vstack(all_points))
 
     return merged_pcd
+"""
 
 
 def add_color_normal(pcd): # in-place coloring and adding normal
@@ -95,7 +100,6 @@ def load_pcds(pcd_files):
         add_color_normal(pcd)
         pcds.append(pcd)
 
-
     return pcds
 
 
@@ -111,6 +115,8 @@ def align_pcds(pcds, size):
         for target_id in range(source_id + 1, n_pcds):
             source = pcds[source_id]
             target = pcds[target_id]
+
+            target.translate(np.array([0.1, 0, 0]))
 
             trans = register(source, target, size)
             GTG_mat = o3d.pipelines.registration.get_information_matrix_from_point_clouds(source, target, size, trans) # これが点の情報を含む
@@ -154,11 +160,15 @@ pcds = load_pcds(["room.ply",
                   "room1.ply"])
 o3d.visualization.draw_geometries(pcds, "input pcds")
 
-size = np.abs((pcds[0].get_max_bound() - pcds[0].get_min_bound())).max() / 30
+size = 0.1 #np.abs((pcds[0].get_max_bound() - pcds[0].get_min_bound())).max() / 30
 
+start = time.time()
 pcd_aligned = align_pcds(pcds, size)
 o3d.visualization.draw_geometries(pcd_aligned, "aligned")
-
+elapsed_time = time.time() - start
+print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
+"""
 pcd_merge = merge(pcd_aligned)
 add_color_normal(pcd_merge)
 o3d.visualization.draw_geometries([pcd_merge], "merged")
+"""
