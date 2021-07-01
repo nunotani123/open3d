@@ -68,7 +68,7 @@ def register(pcd1, pcd2, size):
             o3d.pipelines.registration.TransformationEstimationPointToPlane(),
             o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=200))
     #print(result2)
-    return result2.transformation
+    return result2
 
 """
 def merge(pcds):
@@ -83,7 +83,6 @@ def merge(pcds):
 
     return merged_pcd
 """
-
 
 def add_color_normal(pcd): # in-place coloring and adding normal
     pcd.paint_uniform_color(np.random.rand(3))
@@ -103,7 +102,7 @@ def load_pcds(pcd_files):
     return pcds
 
 
-def align_pcds(pcds, size):
+def align_pcds(pcds):
     # 複数の点群を位置合わせ
 
     pose_graph = o3d.pipelines.registration.PoseGraph()
@@ -116,8 +115,13 @@ def align_pcds(pcds, size):
             source = pcds[source_id]
             target = pcds[target_id]
 
-           
-            trans = register(source, target, size)
+            size = 3
+
+            while regist.inlier_rmse < 2:
+                regist = register(source, target, size)
+                trans = regist.transformation
+                size = size - 0.2
+                print (regist.inlier_rmse)
 
             GTG_mat = o3d.pipelines.registration.get_information_matrix_from_point_clouds(source, target, size, trans) # これが点の情報を含む
 
@@ -153,8 +157,6 @@ def align_pcds(pcds, size):
 
 
     return pcds
-
-
 
 pcds = load_pcds(["room.ply",
                   "room1.ply"])
