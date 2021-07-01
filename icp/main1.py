@@ -33,7 +33,7 @@ if __name__ == "__main__":
     source.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
     target.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
     result_icp = o3d.pipelines.registration.registration_icp(
-        source, target, 0.02, np.identity(4),
+        source, target, 1.02, np.identity(4),
         o3d.pipelines.registration.TransformationEstimationPointToPlane(),
         o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=2000))
     print(result_icp)

@@ -67,7 +67,7 @@ def register(pcd1, pcd2, size):
             pcd1_d, pcd2_d, size, np.identity(4),
             o3d.pipelines.registration.TransformationEstimationPointToPlane(),
             o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=200))
-    
+    #print(result2)
     return result2.transformation
 
 """
@@ -116,9 +116,9 @@ def align_pcds(pcds, size):
             source = pcds[source_id]
             target = pcds[target_id]
 
-            target.translate(np.array([0.1, 0, 0]))
-
+           
             trans = register(source, target, size)
+
             GTG_mat = o3d.pipelines.registration.get_information_matrix_from_point_clouds(source, target, size, trans) # これが点の情報を含む
 
             if target_id == source_id + 1: # 次のidの点群ならaccum_poseにposeを積算
@@ -158,15 +158,27 @@ def align_pcds(pcds, size):
 
 pcds = load_pcds(["room.ply",
                   "room1.ply"])
+
+#pcds[0].translate(np.array([1, 0, 0]))
+R = pcds[0].get_rotation_matrix_from_xyz((0, 0, np.pi / 10))
+pcds[0].rotate(R, center=(0, 0, 0))
 o3d.visualization.draw_geometries(pcds, "input pcds")
 
-size = 0.1 #np.abs((pcds[0].get_max_bound() - pcds[0].get_min_bound())).max() / 30
+size = 3 #np.abs((pcds[0].get_max_bound() - pcds[0].get_min_bound())).max() / 30
 
 start = time.time()
 pcd_aligned = align_pcds(pcds, size)
 o3d.visualization.draw_geometries(pcd_aligned, "aligned")
 elapsed_time = time.time() - start
+print (pcd_aligned)
 print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
+#size = 1.5
+for num in range(5):
+    pcd_aligned = align_pcds(pcd_aligned, size)
+    o3d.visualization.draw_geometries(pcd_aligned, "aligned")
+    finish_time = time.time() - start - elapsed_time
+    print ("finish\time:{0}".format(finish_time) + "[sec]")
+
 """
 pcd_merge = merge(pcd_aligned)
 add_color_normal(pcd_merge)
