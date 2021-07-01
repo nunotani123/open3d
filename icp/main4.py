@@ -117,10 +117,17 @@ def align_pcds(pcds):
 
             size = 3
 
-            while regist.inlier_rmse < 2:
+            regist = register(source, target, size)
+            trans = regist.transformation
+            print ("size {0:.2f}".format(size))
+            print (regist.inlier_rmse)
+
+
+            while regist.inlier_rmse > 0.2:
                 regist = register(source, target, size)
                 trans = regist.transformation
                 size = size - 0.2
+                print ("size {0:.2f}".format(size))
                 print (regist.inlier_rmse)
 
             GTG_mat = o3d.pipelines.registration.get_information_matrix_from_point_clouds(source, target, size, trans) # これが点の情報を含む
@@ -162,25 +169,26 @@ pcds = load_pcds(["room.ply",
                   "room1.ply"])
 
 #pcds[0].translate(np.array([1, 0, 0]))
-R = pcds[0].get_rotation_matrix_from_xyz((0, 0, np.pi / 10))
+R = pcds[0].get_rotation_matrix_from_xyz((0, 0, np.pi / 8))
 pcds[0].rotate(R, center=(0, 0, 0))
 o3d.visualization.draw_geometries(pcds, "input pcds")
 
 size = 3 #np.abs((pcds[0].get_max_bound() - pcds[0].get_min_bound())).max() / 30
 
 start = time.time()
-pcd_aligned = align_pcds(pcds, size)
+pcd_aligned = align_pcds(pcds)
 o3d.visualization.draw_geometries(pcd_aligned, "aligned")
 elapsed_time = time.time() - start
-print (pcd_aligned)
 print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
+
+"""
 #size = 1.5
 for num in range(5):
     pcd_aligned = align_pcds(pcd_aligned, size)
     o3d.visualization.draw_geometries(pcd_aligned, "aligned")
     finish_time = time.time() - start - elapsed_time
     print ("finish\time:{0}".format(finish_time) + "[sec]")
-
+"""
 """
 pcd_merge = merge(pcd_aligned)
 add_color_normal(pcd_merge)
