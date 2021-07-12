@@ -12,9 +12,10 @@ def register(pcd1, pcd2, size):
     kdt_f = o3d.geometry.KDTreeSearchParamHybrid(radius=size * 10, max_nn=50)
 
     # ダウンサンプリング
-    pcd1_d = pcd1.voxel_down_sample(size)
-    pcd2_d = pcd2.voxel_down_sample(size)
-    
+    pcd1_d = pcd1.voxel_down_sample(voxel_size=0.5)
+    pcd2_d = pcd2.voxel_down_sample(voxel_size=0.5)
+    # o3d.visualization.draw_geometries([pcd1_d])
+
     pcd1_d.estimate_normals(kdt_n)
     pcd2_d.estimate_normals(kdt_n)
 
@@ -115,13 +116,20 @@ def align_pcds(pcds):
             source = pcds[source_id]
             target = pcds[target_id]
 
-            size = 3
+            size = 50
 
             regist = register(source, target, size)
             trans = regist.transformation
             print ("size {0:.2f}".format(size))
-            print (regist.inlier_rmse)
+            print ("rmse:",regist.inlier_rmse)
 
+            """
+            while regist.inlier_rmse <= 0 :
+                size = size - 0.4
+                regist = register(source, target, size)
+                trans = regist.transformation
+                print ("size {0:.2f}".format(size))
+                print (regist.inlier_rmse)
 
             while regist.inlier_rmse > 0.2:
                 regist = register(source, target, size)
@@ -129,6 +137,12 @@ def align_pcds(pcds):
                 size = size - 0.2
                 print ("size {0:.2f}".format(size))
                 print (regist.inlier_rmse)
+                if regist.inlier_rmse <= 0 :
+                    size =+ 1
+                    regist.inlier_rmse = 3
+            """
+            
+
 
             GTG_mat = o3d.pipelines.registration.get_information_matrix_from_point_clouds(source, target, size, trans) # これが点の情報を含む
 
@@ -165,21 +179,25 @@ def align_pcds(pcds):
 
     return pcds
 
-pcds = load_pcds(["room.ply",
-                  "room1.ply"])
-
-#pcds[0].translate(np.array([1, 0, 0]))
-R = pcds[0].get_rotation_matrix_from_xyz((0, 0, np.pi / 8))
-pcds[0].rotate(R, center=(0, 0, 0))
+pcds = load_pcds(["520-sitescape.ply",
+                  "520-sitescape.ply"])
+                
+#pcds[1].translate(np.array([0, 1, 0]))
+R = pcds[1].get_rotation_matrix_from_xyz((0, 0, np.pi / 4))
+pcds[1].rotate(R, center=(0, 0, 0))
 o3d.visualization.draw_geometries(pcds, "input pcds")
 
-size = 3 #np.abs((pcds[0].get_max_bound() - pcds[0].get_min_bound())).max() / 30
+# size = 3 #np.abs((pcds[0].get_max_bound() - pcds[0].get_min_bound())).max() / 30
+num = 2
+for num in range(num):
+    start = time.time()
+    pcd_aligned = align_pcds(pcds)
+    elapsed_time = time.time() - start
+    all_time =+ elapsed_time
 
-start = time.time()
-pcd_aligned = align_pcds(pcds)
+ave_time = all_time/num
+print ("ave_time:{0}".format(ave_time) + "[sec]")
 o3d.visualization.draw_geometries(pcd_aligned, "aligned")
-elapsed_time = time.time() - start
-print ("elapsed_time:{0}".format(elapsed_time) + "[sec]")
 
 """
 #size = 1.5
